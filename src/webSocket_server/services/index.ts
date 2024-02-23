@@ -1,0 +1,88 @@
+import { messageType } from "../../constants";
+import { generateId } from "../../helpers";
+
+import { Room, Player } from "..";
+import { WebSocket, WebSocketServer } from "ws";
+
+const getAvailableRoom = (rooms: Room[]) => {
+  return rooms.filter((room) => room.roomUsers.length < 2) || [];
+};
+
+// export const addToRoom = (ws: WebSocket, rooms: Room[]) => {
+//   const availableRooms = getAvailableRoom(rooms);
+// };
+
+export const createGame = (wss: WebSocketServer, idGame, idPlayer) => {
+  wss.clients.forEach((client) => {
+    client.send(
+      JSON.stringify({
+        type: messageType.createGame,
+        data: JSON.stringify({ idGame, idPlayer }),
+        id: 0,
+      })
+    );
+  });
+};
+
+export const updateRoom = (ws: WebSocket, rooms: Room[]) => {
+  console.log(123);
+  // const availableRooms = rooms.find((room) => room.isAvailable) || [];
+  const availableRooms = getAvailableRoom(rooms);
+
+  ws.send(
+    JSON.stringify({
+      type: messageType.updateRoom,
+      data: JSON.stringify(availableRooms),
+      id: 0,
+    })
+  );
+  // console.log(availableRooms, 1);
+  // wss.clients.forEach((client) => {
+  //   client.send(
+  //     JSON.stringify({
+  //       type: messageType.updateRoom,
+  //       data: JSON.stringify(availableRooms),
+  //       id: 0,
+  //     })
+  //   );
+  // });
+};
+
+export const updateWinners = (ws: WebSocket, tableOfWinners: any) => {
+  ws.send(
+    JSON.stringify({
+      type: messageType.updateWinners,
+      data: JSON.stringify(tableOfWinners), // fix
+      id: 0,
+    })
+  );
+
+  // wss.clients.forEach((client) => {
+  //   client.send(
+  //     JSON.stringify({
+  //       type: messageType.updateWinners,
+  //       data: JSON.stringify(tableOfWinners), // fix
+  //       id: 0,
+  //     })
+  //   );
+  // });
+};
+
+export const registerPlayer = (ws: WebSocket, message, players) => {
+  const { type, data, id } = JSON.parse(message);
+  const { name } = JSON.parse(data);
+  const playerIndex = +players[players.length] || 0;
+
+  ws.send(
+    JSON.stringify({
+      type,
+      data: JSON.stringify({
+        name,
+        index: playerIndex,
+        error: false,
+        errText: "some error",
+      }), //fix error text
+      id,
+    })
+  );
+};

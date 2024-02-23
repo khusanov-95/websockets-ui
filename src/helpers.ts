@@ -1,1 +1,1 @@
-export const generateId = ():number => Math.random();
+export const generateId = (): string => Math.random().toString();

@@ -1,118 +1,85 @@
 import { WebSocketServer } from "ws";
 
+import { WebSocket } from "ws";
+
 import { messageType } from "../constants";
 import { generateId } from "../helpers";
+import {
+  registerPlayer,
+  updateRoom,
+  updateWinners,
+  createGame,
+} from "./services";
 
-interface Player {
-  name: string,
-  index: number,
-  id?: number, // remove ?
-  password?: number // remove ?
+export interface Player {
+  name: string;
+  index: number;
+  password?: number; // remove ?
 }
 
-interface Room {
-  roomId: number,
+export interface Room {
+  roomId: string;
   roomUsers: Player[];
-  isAvailable: boolean;
+  // isAvailable: boolean;
 }
 
-const players:Player[] = [];
-const rooms:Room[] = [];
-const tableOfWinners = [] // update/fix
+const players: Player[] = [];
+const rooms: Room[] = [];
+const tableOfWinners = []; // update/fix
 
+const wsPort = 3000;
 
-export const webSocketServer = () => {
-    const webSocketServer = new WebSocketServer({port: 3000}) // replace port ?
+export const webSocketServer = new WebSocketServer({
+  port: wsPort,
+});
 
+webSocketServer.on("connection", function connection(ws: WebSocket) {
+  ws.on("message", function message(message: string) {
+    console.log("received: %s", message);
 
-    webSocketServer.on('connection', function connection(ws) {
-        ws.on('message', function message(message: string) {
-          console.log('received: %s', message);
+    const { type, data, id } = JSON.parse(message);
 
-          const {type, data, id} = JSON.parse(message);
-      
- 
+    if (type === messageType.reg) {
+      const playerIndex = generateId();
+      const { name, password } = JSON.parse(data);
 
-          if(type === messageType.reg) {
-            const {name, password} = JSON.parse(data);
+      const player = {
+        id: generateId(),
+        name,
+        index: +playerIndex,
+        password,
+      };
+      players.push(player);
 
-            const playerIndex = +players[players.length] || 0;
-            // console.log(players, players.length)
-            const player = {
-              id: generateId(),
-              name,
-              index: playerIndex,
-              password
-            }
-            players.push(player);
+      registerPlayer(ws, message, players);
+      updateRoom(ws, rooms);
+      updateWinners(ws, tableOfWinners);
+    }
 
+    if (type === messageType.createRoom) {
+      const currentPlayer = players[players.length - 1]; // not correct ?
 
-            ws.send(JSON.stringify({
-              type,
-              data: JSON.stringify({name, index: playerIndex, error: false, errText: 'some error'}),//fix error text
-              id
-            }));
-
-            const availableRooms = rooms.find(room => room.isAvailable) || [];
-
-            console.log(availableRooms)
-
-            ws.send(JSON.stringify({
-              type: messageType.updateRoom,
-              data: JSON.stringify(availableRooms),
-              id: 0
-            }));
-
-            ws.send(JSON.stringify({
-              type: messageType.updateWinners,
-              data: JSON.stringify([]), // fix
-              id: 0
-            }));
-
-          }
-
-          if(type === messageType.createRoom) {
-            // console.log(rooms, rooms.length)
-            const currentPlayer = players[players.length - 1];
-
-            rooms.push({
-              roomId: generateId(),
-              roomUsers: [currentPlayer],
-              isAvailable: true
-            });
-
-            const availableRooms = rooms.find(room => room.isAvailable);
-  
-            ws.send(JSON.stringify({
-              type: messageType.updateRoom,
-              data: JSON.stringify(availableRooms),
-              id: 0
-            }));
-            
-          }
-
-          if(type === messageType.addUserToRoom) {
-            const availableRoom = rooms.find(room => room.isAvailable);
-            // console.log(availableRoom)
-            const currentPlayer = players[players.length - 1];
-            
-            // rooms[0].push('user-two');
-            // ws.send(JSON.stringify({
-            //   type,
-            //   data: JSON.stringify( {
-            //     idGame: 1,  
-            //     idPlayer: 1, // id for player in the game session, who have sent add_user_to_room request, not enemy
-            // },),//fix 
-            //   id
-            // }));
-          }
-   
-
-          
-
-        });
-      
-      
+      rooms.push({
+        roomId: generateId(),
+        roomUsers: [currentPlayer],
+        // isAvailable: true,
       });
-}
+      console.log(rooms);
+      updateRoom(ws, rooms);
+    }
 
+    if (type === messageType.addUserToRoom) {
+      // const availableRoom = rooms.find((room) => room.isAvailable);
+      // console.log(availableRoom)
+      const { indexRoom } = JSON.parse(data);
+      const currentPlayer = players[players.length - 1]; // wrong ?
+      const room = rooms.find((room) => room.roomId === indexRoom);
+      room?.roomUsers.push(currentPlayer);
+
+      console.log(room, currentPlayer, room);
+
+      updateRoom(ws, rooms);
+      createGame(webSocketServer, currentPlayer.index, room?.roomId);
+    }
+  });
+});

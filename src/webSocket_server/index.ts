@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 
 import { WebSocket } from "ws";
 
-import { messageType, shipType } from "../constants";
+import { attackStatus, messageType, shipType } from "../constants";
 import { generateId } from "../helpers";
 import {
   registerPlayer,
@@ -10,6 +10,7 @@ import {
   updateWinners,
   createGame,
   startGame,
+  attack,
 } from "./services";
 
 export interface Ship {
@@ -67,7 +68,7 @@ const getAllShipPositions = (
   const allPositions = [];
 
   for (let i = 0; i < length; i++) {
-    console.log(6, i);
+    // console.log(6, i);
     allPositions.push({
       [targetValue]: initialPosition[targetValue] + i,
       [secondaryValue]: initialPosition[secondaryValue],
@@ -85,7 +86,7 @@ const contractShipsExactPositions = (ships: Ship[]) => {
     const { position, type, direction, length } = ship;
 
     if (type === shipType.small) {
-      shipsExactPositions.small.push({ position });
+      shipsExactPositions.small.push({ ...position });
     }
     if (type === shipType.medium) {
       shipsExactPositions.medium.push(
@@ -169,20 +170,83 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
         currentPlayer.ships.push([...ships]);
 
         currentPlayer.shipsExactPosition = contractShipsExactPositions(ships);
-        console.log(currentPlayer, 8);
+        // console.log(currentPlayer, 8);
       }
 
-      // if (
-      //   currentRoom.roomUsers[0].ships.length &&
-      //   currentRoom.roomUsers[1].ships.length
-      // ) {
-      //   const currentUserShips = currentPlayer.ships;
-      //   startGame(webSocketServer, currentUserShips, indexPlayer);
-      // }
+      if (
+        currentRoom.roomUsers[0].ships.length &&
+        currentRoom.roomUsers[1].ships.length
+      ) {
+        const currentUserShips = currentPlayer.ships;
+        startGame(webSocketServer, currentUserShips, indexPlayer);
+      }
     }
 
     if (type === messageType.attack) {
-      // const currentPlayer =
+      const { gameId, x: attackX, y: attackY, indexPlayer } = JSON.parse(data);
+      // const attackPosition = { x, y };
+      const currentRoom = rooms.find((room) => room.roomId === gameId);
+
+      const currentPlayer = currentRoom.roomUsers.find(
+        (player) => player.index === indexPlayer
+      );
+      const enemyPlayer = currentRoom.roomUsers.find(
+        (player) => player.index !== indexPlayer
+      );
+
+      const { shipsExactPosition } = enemyPlayer;
+
+      // console.log(currentPlayer.index, enemyPlayer.index, 93);
+      let status = attackStatus.miss;
+
+      for (let shipType in shipsExactPosition) {
+        // console.log(shipsExactPosition[shipType]);
+        const positions = shipsExactPosition[shipType];
+        // console.log(positions, 85, attackX, attackY);
+
+        positions.forEach((position, i) => {
+          // console.log(position);
+
+          if (Array.isArray(position)) {
+            position.forEach((positionItem, j) => {
+              const { x: shipX, y: shipY } = positionItem;
+
+              if (shipX === attackX && shipY === attackY) {
+                // remove ship
+                position.splice(j, 1);
+                console.log(position, j);
+                // if no ships left
+                if (!positionItem.length) {
+                  status = attackStatus.killed;
+                }
+                // send status
+                status = attackStatus.shot;
+                attack(ws, position, currentPlayer.index, status);
+              } else {
+                attack(ws, position, currentPlayer.index, status);
+              }
+            });
+          } else {
+            const { x: shipX, y: shipY } = position;
+            if (shipX === attackX && shipY === attackY) {
+              // remove ship
+              positions.splice(i, 1);
+              console.log(position, i);
+              // if no ships left
+              if (!position.length) {
+                status = attackStatus.killed;
+              }
+              // send status
+              status = attackStatus.shot;
+              attack(ws, position, currentPlayer.index, status);
+            } else {
+              attack(ws, position, currentPlayer.index, status);
+            }
+          }
+        });
+      }
+
+      // console.log(attackPosition, shipsExactPosition, currentPlayer.ships, 99);
     }
 
     if (type === messageType.randomAttack) {

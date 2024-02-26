@@ -68,7 +68,6 @@ export const createGame = (wss: WebSocketServer, idGame, room: Room) => {
 };
 
 export const updateRoom = (ws: WebSocket, rooms: Room[]) => {
-  // console.log(123);
   // const availableRooms = rooms.find((room) => room.isAvailable) || [];
   const availableRooms = getAvailableRoom(rooms);
 
@@ -130,7 +129,6 @@ export const registerPlayer = (ws: WebSocket, player) => {
 };
 
 export const startGame = (wss: WebSocketServer, ships, currentPlayerIndex) => {
-  console.log(222);
   wss.clients.forEach((client) => {
     client.send(
       JSON.stringify({

@@ -1,6 +1,6 @@
 import { messageType } from "../../constants";
 
-import { Room, Player } from "..";
+import { Room, Player } from "../../interfaces";
 import { WebSocket, WebSocketServer } from "ws";
 
 const getAvailableRoom = (rooms: Room[]) => {

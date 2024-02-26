@@ -18,7 +18,7 @@ import { contractShipsExactPositions } from "./utils";
 
 const players: Player[] = [];
 const rooms: Room[] = [];
-const tableOfWinners = []; // update/fix
+const tableOfWinners = [];
 const games: Game[] = [];
 
 webSocketServer.on("connection", function connection(ws: WebSocket) {
@@ -130,6 +130,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                     !shipsExactPosition.huge.ships.length
                   ) {
                     finishGame(webSocketServer, currentPlayer.index);
+                    tableOfWinners.push(currentPlayer);
                   }
 
                   turn(webSocketServer, currentPlayer.index);

@@ -208,7 +208,12 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 status = attackStatus.shot;
                 attack(ws, position, currentPlayer.index, status);
               } else {
-                attack(ws, position, currentPlayer.index, status);
+                attack(
+                  ws,
+                  { x: attackX, y: attackY },
+                  currentPlayer.index,
+                  status
+                );
               }
             });
           } else {
@@ -225,7 +230,12 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
               status = attackStatus.shot;
               attack(ws, position, currentPlayer.index, status);
             } else {
-              attack(ws, position, currentPlayer.index, status);
+              attack(
+                ws,
+                { x: attackX, y: attackY },
+                currentPlayer.index,
+                status
+              );
             }
           }
         });

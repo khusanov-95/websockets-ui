@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 
-import { attackStatus, messageType, shipType } from "../constants";
+import { attackStatus, messageType } from "../constants";
 import { webSocketServer } from "./webSocketServer";
 import { generateId } from "../helpers";
 import {
@@ -44,8 +44,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
     }
 
     if (type === messageType.createRoom) {
-      const currentPlayer = players[players.length - 1]; // not correct ?
-
+      const currentPlayer = players[players.length - 1];
       rooms.push({
         roomId: generateId(),
         roomUsers: [currentPlayer],
@@ -56,7 +55,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
 
     if (type === messageType.addUserToRoom) {
       const { indexRoom } = JSON.parse(data);
-      const currentPlayer = players[players.length - 1]; // wrong ?
+      const currentPlayer = players[players.length - 1];
       const room = rooms.find((room) => room.roomId === indexRoom);
       const newGame = { gameId: room.roomId };
 

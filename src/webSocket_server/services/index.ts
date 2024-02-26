@@ -80,7 +80,7 @@ export const updateWinners = (ws: WebSocket, tableOfWinners: any) => {
   ws.send(
     JSON.stringify({
       type: messageType.updateWinners,
-      data: JSON.stringify(tableOfWinners), // fix
+      data: JSON.stringify(tableOfWinners),
       id: 0,
     })
   );
@@ -97,7 +97,7 @@ export const registerPlayer = (ws: WebSocket, player) => {
         index: id,
         error: false,
         errText: "some error",
-      }), //fix error text
+      }),
       id: 0,
     })
   );

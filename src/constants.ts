@@ -26,8 +26,3 @@ export enum attackStatus {
   killed = "killed",
   shot = "shot",
 }
-
-// export enum shipDirections {
-//   vertical = "vertical",
-//   horizontal = "horizontal",
-// }

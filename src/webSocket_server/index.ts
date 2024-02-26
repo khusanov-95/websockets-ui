@@ -25,7 +25,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
   ws.on("message", function message(message: string) {
     console.log("received: %s", message);
 
-    const { type, data, id } = JSON.parse(message);
+    const { type, data } = JSON.parse(message);
 
     if (type === messageType.reg) {
       const { name, password } = JSON.parse(data);
@@ -108,7 +108,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       for (let shipType in shipsExactPosition) {
         const positions = shipsExactPosition[shipType].ships;
         // const aroundShipPositions = shipsExactPosition["small"].aroundShip;
-        console.log(positions);
+
         positions.forEach((position, i) => {
           if (Array.isArray(position)) {
             position.forEach((positionItem, j) => {
@@ -265,10 +265,10 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 attack(ws, position, currentPlayer.index, status);
 
                 if (
-                  !shipsExactPosition.small.ship.length &&
-                  !shipsExactPosition.medium.ship.length &&
-                  !shipsExactPosition.large.ship.length &&
-                  !shipsExactPosition.huge.ship.length
+                  !shipsExactPosition.small.ships.length &&
+                  !shipsExactPosition.medium.ships.length &&
+                  !shipsExactPosition.large.ships.length &&
+                  !shipsExactPosition.huge.ships.length
                 ) {
                   finishGame(webSocketServer, currentPlayer.index);
                 }

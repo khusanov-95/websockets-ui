@@ -34,16 +34,18 @@ export const randomAttack = (ws: WebSocket, gameId, indexPlayer) => {
   );
 };
 
-export const turn = (ws: WebSocket, currentPlayer) => {
-  ws.send(
-    JSON.stringify({
-      type: messageType.turn,
-      data: JSON.stringify({
-        currentPlayer,
-      }),
-      id: 0,
-    })
-  );
+export const turn = (wss: WebSocketServer, currentPlayer) => {
+  wss.clients.forEach((client) => {
+    client.send(
+      JSON.stringify({
+        type: messageType.turn,
+        data: JSON.stringify({
+          currentPlayer,
+        }),
+        id: 0,
+      })
+    );
+  });
 };
 
 export const createGame = (wss: WebSocketServer, idGame, room: Room) => {

@@ -50,13 +50,6 @@ export const webSocketServer = new WebSocketServer({
   port: wsPort,
 });
 
-// const shipsExactPositions = [
-//   { small: [{}, {}, {}, {}] },
-//   { medium: [{}, {}, {}] },
-//   { large: [{}, {}] },
-//   { huge: {} },
-// ];
-
 const getAllShipPositions = (
   length: number,
   initialPosition: any,
@@ -77,7 +70,7 @@ const getAllShipPositions = (
   return allPositions;
 };
 
-const getAllAroundShipPosition = (length: number) => {};
+// const getAllAroundShipPosition = (length: number) => {};
 
 function getNeighboringCoordinates(x, y) {
   const neighbors = [];
@@ -108,11 +101,11 @@ const contractShipsExactPositions = (ships: Ship[]) => {
 
   ships.forEach((ship) => {
     const { position, type, direction, length } = ship;
-    // console.log(position);
+
     if (type === shipType.small) {
       shipsExactPositions.small.ships.push({ ...position });
       const aroundShipPositions = getAroundShipPosition(position);
-      // console.log(aroundShipPositions, 96);
+
       shipsExactPositions.small.aroundShip.push([...aroundShipPositions]);
     }
     if (type === shipType.medium) {
@@ -131,7 +124,7 @@ const contractShipsExactPositions = (ships: Ship[]) => {
       );
     }
   });
-  console.log(shipsExactPositions, 5);
+
   return shipsExactPositions;
 };
 
@@ -201,6 +194,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       ) {
         const currentUserShips = currentPlayer.ships;
         startGame(webSocketServer, currentUserShips, indexPlayer);
+        turn(webSocketServer, currentPlayer.index);
       }
     }
 
@@ -222,7 +216,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       for (let shipType in shipsExactPosition) {
         const positions = shipsExactPosition[shipType].ships;
         // const aroundShipPositions = shipsExactPosition["small"].aroundShip;
-
+        console.log(positions);
         positions.forEach((position, i) => {
           if (Array.isArray(position)) {
             position.forEach((positionItem, j) => {
@@ -237,21 +231,21 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                   attack(ws, position, currentPlayer.index, status);
 
                   if (
-                    !shipsExactPosition.small.ship.length &&
-                    !shipsExactPosition.medium.ship.length &&
-                    !shipsExactPosition.large.ship.length &&
-                    !shipsExactPosition.huge.ship.length
+                    !shipsExactPosition.small.ships.length &&
+                    !shipsExactPosition.medium.ships.length &&
+                    !shipsExactPosition.large.ships.length &&
+                    !shipsExactPosition.huge.ships.length
                   ) {
                     finishGame(webSocketServer, currentPlayer.index);
                   }
 
-                  turn(ws, currentPlayer.index);
+                  turn(webSocketServer, currentPlayer.index);
                   return;
                 }
                 // send status
                 status = attackStatus.shot;
                 attack(ws, position, currentPlayer.index, status);
-                turn(ws, currentPlayer.index);
+                turn(webSocketServer, currentPlayer.index);
               } else {
                 attack(
                   ws,
@@ -259,7 +253,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                   currentPlayer.index,
                   status
                 );
-                turn(ws, enemyPlayer.index);
+                turn(webSocketServer, enemyPlayer.index);
               }
             });
           } else {
@@ -273,10 +267,10 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 attack(ws, position, currentPlayer.index, status);
 
                 if (
-                  !shipsExactPosition.small.ship.length &&
-                  !shipsExactPosition.medium.ship.length &&
-                  !shipsExactPosition.large.ship.length &&
-                  !shipsExactPosition.huge.ship.length
+                  !shipsExactPosition.small.ships.length &&
+                  !shipsExactPosition.medium.ships.length &&
+                  !shipsExactPosition.large.ships.length &&
+                  !shipsExactPosition.huge.ships.length
                 ) {
                   finishGame(webSocketServer, currentPlayer.index);
                 }
@@ -285,13 +279,13 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 //   status = attackStatus.miss;
                 // attack(ws, positionAround, currentPlayer.index, status);
                 // });
-                turn(ws, currentPlayer.index);
+                turn(webSocketServer, currentPlayer.index);
                 return;
               }
               // send status
               status = attackStatus.shot;
               attack(ws, position, currentPlayer.index, status);
-              turn(ws, currentPlayer.index);
+              turn(webSocketServer, currentPlayer.index);
             } else {
               attack(
                 ws,
@@ -299,7 +293,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 currentPlayer.index,
                 status
               );
-              turn(ws, enemyPlayer.index);
+              turn(webSocketServer, enemyPlayer.index);
             }
           }
         });
@@ -350,13 +344,13 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                     finishGame(webSocketServer, currentPlayer.index);
                   }
 
-                  turn(ws, currentPlayer.index);
+                  turn(webSocketServer, currentPlayer.index);
                   return;
                 }
                 // send status
                 status = attackStatus.shot;
                 attack(ws, position, currentPlayer.index, status);
-                turn(ws, currentPlayer.index);
+                turn(webSocketServer, currentPlayer.index);
               } else {
                 attack(
                   ws,
@@ -364,7 +358,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                   currentPlayer.index,
                   status
                 );
-                turn(ws, enemyPlayer.index);
+                turn(webSocketServer, enemyPlayer.index);
               }
             });
           } else {
@@ -390,13 +384,13 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 //   status = attackStatus.miss;
                 // attack(ws, positionAround, currentPlayer.index, status);
                 // });
-                turn(ws, currentPlayer.index);
+                turn(webSocketServer, currentPlayer.index);
                 return;
               }
               // send status
               status = attackStatus.shot;
               attack(ws, position, currentPlayer.index, status);
-              turn(ws, currentPlayer.index);
+              turn(webSocketServer, currentPlayer.index);
             } else {
               attack(
                 ws,
@@ -404,7 +398,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 currentPlayer.index,
                 status
               );
-              turn(ws, enemyPlayer.index);
+              turn(webSocketServer, enemyPlayer.index);
             }
           }
         });

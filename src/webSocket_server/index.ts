@@ -11,6 +11,8 @@ import {
   createGame,
   startGame,
   attack,
+  turn,
+  finishGame,
 } from "./services";
 
 export interface Ship {
@@ -75,32 +77,61 @@ const getAllShipPositions = (
   return allPositions;
 };
 
+const getAllAroundShipPosition = (length: number) => {};
+
+function getNeighboringCoordinates(x, y) {
+  const neighbors = [];
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      const newX = x + dx;
+      const newY = y + dy;
+      if (newX >= 0 && newX < 9 && newY >= 0 && newY < 9) {
+        neighbors.push({ x: newX, Y: newY });
+      }
+    }
+  }
+
+  return neighbors;
+}
+
+const getAroundShipPosition = (shipPosition) =>
+  getNeighboringCoordinates(shipPosition.x, shipPosition.y);
+
 const contractShipsExactPositions = (ships: Ship[]) => {
-  const shipsExactPositions = { small: [], medium: [], large: [], huge: [] };
+  const shipsExactPositions = {
+    small: { ships: [], aroundShip: [] },
+    medium: { ships: [], aroundShip: [] },
+    large: { ships: [], aroundShip: [] },
+    huge: { ships: [], aroundShip: [] },
+  };
 
   ships.forEach((ship) => {
     const { position, type, direction, length } = ship;
-
+    // console.log(position);
     if (type === shipType.small) {
-      shipsExactPositions.small.push({ ...position });
+      shipsExactPositions.small.ships.push({ ...position });
+      const aroundShipPositions = getAroundShipPosition(position);
+      // console.log(aroundShipPositions, 96);
+      shipsExactPositions.small.aroundShip.push([...aroundShipPositions]);
     }
     if (type === shipType.medium) {
-      shipsExactPositions.medium.push(
+      shipsExactPositions.medium.ships.push(
         getAllShipPositions(length, position, direction)
       );
     }
     if (type === shipType.large) {
-      shipsExactPositions.large.push(
+      shipsExactPositions.large.ships.push(
         getAllShipPositions(length, position, direction)
       );
     }
     if (type === shipType.huge) {
-      shipsExactPositions.huge.push(
+      shipsExactPositions.huge.ships.push(
         getAllShipPositions(length, position, direction)
       );
     }
   });
-
+  console.log(shipsExactPositions, 5);
   return shipsExactPositions;
 };
 
@@ -189,7 +220,8 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       let status = attackStatus.miss;
 
       for (let shipType in shipsExactPosition) {
-        const positions = shipsExactPosition[shipType];
+        const positions = shipsExactPosition[shipType].ships;
+        // const aroundShipPositions = shipsExactPosition["small"].aroundShip;
 
         positions.forEach((position, i) => {
           if (Array.isArray(position)) {
@@ -199,14 +231,27 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
               if (shipX === attackX && shipY === attackY) {
                 // remove ship
                 position.splice(j, 1);
-                console.log(position, j);
                 // if no ships left
                 if (!positionItem.length) {
                   status = attackStatus.killed;
+                  attack(ws, position, currentPlayer.index, status);
+
+                  if (
+                    !shipsExactPosition.small.ship.length &&
+                    !shipsExactPosition.medium.ship.length &&
+                    !shipsExactPosition.large.ship.length &&
+                    !shipsExactPosition.huge.ship.length
+                  ) {
+                    finishGame(webSocketServer, currentPlayer.index);
+                  }
+
+                  turn(ws, currentPlayer.index);
+                  return;
                 }
                 // send status
                 status = attackStatus.shot;
                 attack(ws, position, currentPlayer.index, status);
+                turn(ws, currentPlayer.index);
               } else {
                 attack(
                   ws,
@@ -214,6 +259,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                   currentPlayer.index,
                   status
                 );
+                turn(ws, enemyPlayer.index);
               }
             });
           } else {
@@ -221,14 +267,31 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
             if (shipX === attackX && shipY === attackY) {
               // remove ship
               positions.splice(i, 1);
-              console.log(position, i);
               // if no ships left
               if (!position.length) {
                 status = attackStatus.killed;
+                attack(ws, position, currentPlayer.index, status);
+
+                if (
+                  !shipsExactPosition.small.ship.length &&
+                  !shipsExactPosition.medium.ship.length &&
+                  !shipsExactPosition.large.ship.length &&
+                  !shipsExactPosition.huge.ship.length
+                ) {
+                  finishGame(webSocketServer, currentPlayer.index);
+                }
+
+                // aroundShipPositions[i].forEach((positionAround) => {
+                //   status = attackStatus.miss;
+                // attack(ws, positionAround, currentPlayer.index, status);
+                // });
+                turn(ws, currentPlayer.index);
+                return;
               }
               // send status
               status = attackStatus.shot;
               attack(ws, position, currentPlayer.index, status);
+              turn(ws, currentPlayer.index);
             } else {
               attack(
                 ws,
@@ -236,6 +299,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
                 currentPlayer.index,
                 status
               );
+              turn(ws, enemyPlayer.index);
             }
           }
         });
@@ -243,6 +307,108 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
     }
 
     if (type === messageType.randomAttack) {
+      const { gameId, indexPlayer } = JSON.parse(data);
+      const currentRoom = rooms.find((room) => room.roomId === gameId);
+
+      const attackX = Math.floor(Math.random() * 9) + 1;
+      const attackY = Math.floor(Math.random() * 9) + 1;
+
+      const currentPlayer = currentRoom.roomUsers.find(
+        (player) => player.index === indexPlayer
+      );
+      const enemyPlayer = currentRoom.roomUsers.find(
+        (player) => player.index !== indexPlayer
+      );
+
+      const { shipsExactPosition } = enemyPlayer;
+
+      let status = attackStatus.miss;
+
+      for (let shipType in shipsExactPosition) {
+        const positions = shipsExactPosition[shipType].ships;
+        // const aroundShipPositions = shipsExactPosition["small"].aroundShip;
+
+        positions.forEach((position, i) => {
+          if (Array.isArray(position)) {
+            position.forEach((positionItem, j) => {
+              const { x: shipX, y: shipY } = positionItem;
+
+              if (shipX === attackX && shipY === attackY) {
+                // remove ship
+                position.splice(j, 1);
+                // if no ships left
+                if (!positionItem.length) {
+                  status = attackStatus.killed;
+                  attack(ws, position, currentPlayer.index, status);
+
+                  if (
+                    !shipsExactPosition.small.ship.length &&
+                    !shipsExactPosition.medium.ship.length &&
+                    !shipsExactPosition.large.ship.length &&
+                    !shipsExactPosition.huge.ship.length
+                  ) {
+                    finishGame(webSocketServer, currentPlayer.index);
+                  }
+
+                  turn(ws, currentPlayer.index);
+                  return;
+                }
+                // send status
+                status = attackStatus.shot;
+                attack(ws, position, currentPlayer.index, status);
+                turn(ws, currentPlayer.index);
+              } else {
+                attack(
+                  ws,
+                  { x: attackX, y: attackY },
+                  currentPlayer.index,
+                  status
+                );
+                turn(ws, enemyPlayer.index);
+              }
+            });
+          } else {
+            const { x: shipX, y: shipY } = position;
+            if (shipX === attackX && shipY === attackY) {
+              // remove ship
+              positions.splice(i, 1);
+              // if no ships left
+              if (!position.length) {
+                status = attackStatus.killed;
+                attack(ws, position, currentPlayer.index, status);
+
+                if (
+                  !shipsExactPosition.small.ship.length &&
+                  !shipsExactPosition.medium.ship.length &&
+                  !shipsExactPosition.large.ship.length &&
+                  !shipsExactPosition.huge.ship.length
+                ) {
+                  finishGame(webSocketServer, currentPlayer.index);
+                }
+
+                // aroundShipPositions[i].forEach((positionAround) => {
+                //   status = attackStatus.miss;
+                // attack(ws, positionAround, currentPlayer.index, status);
+                // });
+                turn(ws, currentPlayer.index);
+                return;
+              }
+              // send status
+              status = attackStatus.shot;
+              attack(ws, position, currentPlayer.index, status);
+              turn(ws, currentPlayer.index);
+            } else {
+              attack(
+                ws,
+                { x: attackX, y: attackY },
+                currentPlayer.index,
+                status
+              );
+              turn(ws, enemyPlayer.index);
+            }
+          }
+        });
+      }
     }
   });
 });

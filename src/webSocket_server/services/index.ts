@@ -115,3 +115,17 @@ export const startGame = (wss: WebSocketServer, ships, currentPlayerIndex) => {
     );
   });
 };
+
+export const finishGame = (wss: WebSocketServer, winPlayer) => {
+  wss.clients.forEach((client) => {
+    client.send(
+      JSON.stringify({
+        type: messageType.startGame,
+        data: JSON.stringify({
+          winPlayer,
+        }),
+        id: 0,
+      })
+    );
+  });
+};

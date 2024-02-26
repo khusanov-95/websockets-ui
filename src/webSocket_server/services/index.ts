@@ -12,12 +12,51 @@ const getAvailableRoom = (rooms: Room[]) => {
 //   const availableRooms = getAvailableRoom(rooms);
 // };
 
+export const attack = (ws: WebSocket, position, currentPlayer, status) => {
+  ws.send(
+    JSON.stringify({
+      type: messageType.attack,
+      data: JSON.stringify({
+        position,
+        currentPlayer,
+        status,
+      }),
+      id: 0,
+    })
+  );
+};
+
+export const randomAttack = (ws: WebSocket, gameId, indexPlayer) => {
+  ws.send(
+    JSON.stringify({
+      type: messageType.randomAttack,
+      data: JSON.stringify({
+        gameId,
+        indexPlayer,
+      }),
+      id: 0,
+    })
+  );
+};
+
+export const turn = (ws: WebSocket, currentPlayer) => {
+  ws.send(
+    JSON.stringify({
+      type: messageType.turn,
+      data: JSON.stringify({
+        currentPlayer,
+      }),
+      id: 0,
+    })
+  );
+};
+
 export const createGame = (wss: WebSocketServer, idGame, room: Room) => {
   let counter = 0;
   wss.clients.forEach((client) => {
     const player: Player = room.roomUsers[counter];
     counter++;
-    console.log(player, 8);
+
     client.send(
       JSON.stringify({
         type: messageType.createGame,

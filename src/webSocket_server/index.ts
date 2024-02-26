@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 
 import { WebSocket } from "ws";
 
-import { messageType } from "../constants";
+import { messageType, shipType } from "../constants";
 import { generateId } from "../helpers";
 import {
   registerPlayer,
@@ -12,10 +12,18 @@ import {
   startGame,
 } from "./services";
 
+export interface Ship {
+  position: { x: number; y: number };
+  direction: boolean;
+  type: string;
+  length: number;
+}
+
 export interface Player {
   name: string;
   index: number;
-  ships: any[];
+  ships: Ship[];
+  shipsExactPosition?: any;
   password?: number; // remove ?
 }
 
@@ -40,6 +48,65 @@ export const webSocketServer = new WebSocketServer({
   port: wsPort,
 });
 
+// const shipsExactPositions = [
+//   { small: [{}, {}, {}, {}] },
+//   { medium: [{}, {}, {}] },
+//   { large: [{}, {}] },
+//   { huge: {} },
+// ];
+
+const getAllShipPositions = (
+  length: number,
+  initialPosition: any,
+  direction: boolean
+) => {
+  const targetValue = direction ? "y" : "x";
+
+  const secondaryValue = direction ? "x" : "y";
+
+  const allPositions = [];
+
+  for (let i = 0; i < length; i++) {
+    console.log(6, i);
+    allPositions.push({
+      [targetValue]: initialPosition[targetValue] + i,
+      [secondaryValue]: initialPosition[secondaryValue],
+    });
+  }
+  // console.log(allPositions, 91);
+  return allPositions;
+};
+
+const contractShipsExactPositions = (ships: Ship[]) => {
+  const shipsExactPositions = { small: [], medium: [], large: [], huge: [] };
+
+  // console.log(ships);
+  ships.forEach((ship) => {
+    const { position, type, direction, length } = ship;
+
+    if (type === shipType.small) {
+      shipsExactPositions.small.push({ position });
+    }
+    if (type === shipType.medium) {
+      shipsExactPositions.medium.push(
+        getAllShipPositions(length, position, direction)
+      );
+    }
+    if (type === shipType.large) {
+      shipsExactPositions.large.push(
+        getAllShipPositions(length, position, direction)
+      );
+    }
+    if (type === shipType.huge) {
+      shipsExactPositions.huge.push(
+        getAllShipPositions(length, position, direction)
+      );
+    }
+  });
+  // console.log(shipsExactPositions, 5);
+  return shipsExactPositions;
+};
+
 webSocketServer.on("connection", function connection(ws: WebSocket) {
   ws.on("message", function message(message: string) {
     console.log("received: %s", message);
@@ -57,7 +124,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
         ships: [],
       };
       players.push(player);
-      console.log(players);
+      // console.log(players);
       registerPlayer(ws, player);
       updateRoom(ws, rooms);
       updateWinners(ws, tableOfWinners);
@@ -81,7 +148,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       const { indexRoom } = JSON.parse(data);
       const currentPlayer = players[players.length - 1]; // wrong ?
       const room = rooms.find((room) => room.roomId === indexRoom);
-      const newGame = { gameId: generateId() };
+      const newGame = { gameId: room.roomId };
 
       room?.roomUsers.push(currentPlayer);
       games.push(newGame);
@@ -92,28 +159,33 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
 
     if (type === messageType.addShips) {
       const { gameId, ships, indexPlayer } = JSON.parse(data);
-      const currentRoom = rooms.find((room) =>
-        room.roomUsers.find((user) => user.index === indexPlayer)
-      );
+      const currentRoom = rooms.find((room) => room.roomId === gameId);
       const currentPlayer = currentRoom.roomUsers.find(
         (player) => player.index === indexPlayer
       );
 
-      currentPlayer.ships.push([...ships]);
+      if (currentPlayer) {
+        //@ts-ignore
+        currentPlayer.ships.push([...ships]);
 
-      // console.log(
-      //   currentRoom.roomUsers[0].ships.length,
-      //   currentRoom.roomUsers[1].ships.length,
-      //   123
-      // );
-
-      if (
-        currentRoom.roomUsers[0].ships.length &&
-        currentRoom.roomUsers[1].ships.length
-      ) {
-        const currentUserShips = currentPlayer.ships;
-        startGame(webSocketServer, currentUserShips, indexPlayer);
+        currentPlayer.shipsExactPosition = contractShipsExactPositions(ships);
+        console.log(currentPlayer, 8);
       }
+
+      // if (
+      //   currentRoom.roomUsers[0].ships.length &&
+      //   currentRoom.roomUsers[1].ships.length
+      // ) {
+      //   const currentUserShips = currentPlayer.ships;
+      //   startGame(webSocketServer, currentUserShips, indexPlayer);
+      // }
+    }
+
+    if (type === messageType.attack) {
+      // const currentPlayer =
+    }
+
+    if (type === messageType.randomAttack) {
     }
   });
 });

@@ -20,3 +20,14 @@ export enum shipType {
   large = "large",
   huge = "huge",
 }
+
+export enum attackStatus {
+  miss = "miss",
+  killed = "killed",
+  shot = "shot",
+}
+
+// export enum shipDirections {
+//   vertical = "vertical",
+//   horizontal = "horizontal",
+// }

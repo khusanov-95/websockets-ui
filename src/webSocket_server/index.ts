@@ -9,11 +9,13 @@ import {
   updateRoom,
   updateWinners,
   createGame,
+  startGame,
 } from "./services";
 
 export interface Player {
   name: string;
   index: number;
+  ships: any[];
   password?: number; // remove ?
 }
 
@@ -23,9 +25,14 @@ export interface Room {
   // isAvailable: boolean;
 }
 
+export interface Game {
+  gameId: string;
+}
+
 const players: Player[] = [];
 const rooms: Room[] = [];
 const tableOfWinners = []; // update/fix
+const games: Game[] = [];
 
 const wsPort = 3000;
 
@@ -40,18 +47,18 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
     const { type, data, id } = JSON.parse(message);
 
     if (type === messageType.reg) {
-      const playerIndex = generateId();
       const { name, password } = JSON.parse(data);
 
       const player = {
-        id: generateId(),
+        // id: 1 + generateId(),
         name,
-        index: +playerIndex,
+        index: +generateId(),
         password,
+        ships: [],
       };
       players.push(player);
-
-      registerPlayer(ws, message, players);
+      console.log(players);
+      registerPlayer(ws, player);
       updateRoom(ws, rooms);
       updateWinners(ws, tableOfWinners);
     }
@@ -64,7 +71,7 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
         roomUsers: [currentPlayer],
         // isAvailable: true,
       });
-      console.log(rooms);
+      // console.log(rooms);
       updateRoom(ws, rooms);
     }
 
@@ -74,12 +81,39 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       const { indexRoom } = JSON.parse(data);
       const currentPlayer = players[players.length - 1]; // wrong ?
       const room = rooms.find((room) => room.roomId === indexRoom);
+      const newGame = { gameId: generateId() };
+
       room?.roomUsers.push(currentPlayer);
+      games.push(newGame);
 
-      console.log(room, currentPlayer, room);
-
+      createGame(webSocketServer, newGame?.gameId, room);
       updateRoom(ws, rooms);
-      createGame(webSocketServer, currentPlayer.index, room?.roomId);
+    }
+
+    if (type === messageType.addShips) {
+      const { gameId, ships, indexPlayer } = JSON.parse(data);
+      const currentRoom = rooms.find((room) =>
+        room.roomUsers.find((user) => user.index === indexPlayer)
+      );
+      const currentPlayer = currentRoom.roomUsers.find(
+        (player) => player.index === indexPlayer
+      );
+
+      currentPlayer.ships.push([...ships]);
+
+      // console.log(
+      //   currentRoom.roomUsers[0].ships.length,
+      //   currentRoom.roomUsers[1].ships.length,
+      //   123
+      // );
+
+      if (
+        currentRoom.roomUsers[0].ships.length &&
+        currentRoom.roomUsers[1].ships.length
+      ) {
+        const currentUserShips = currentPlayer.ships;
+        startGame(webSocketServer, currentUserShips, indexPlayer);
+      }
     }
   });
 });

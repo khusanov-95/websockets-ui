@@ -25,13 +25,12 @@ export interface Player {
   index: number;
   ships: Ship[];
   shipsExactPosition?: any;
-  password?: number; // remove ?
+  password?: number;
 }
 
 export interface Room {
   roomId: string;
   roomUsers: Player[];
-  // isAvailable: boolean;
 }
 
 export interface Game {
@@ -68,20 +67,17 @@ const getAllShipPositions = (
   const allPositions = [];
 
   for (let i = 0; i < length; i++) {
-    // console.log(6, i);
     allPositions.push({
       [targetValue]: initialPosition[targetValue] + i,
       [secondaryValue]: initialPosition[secondaryValue],
     });
   }
-  // console.log(allPositions, 91);
   return allPositions;
 };
 
 const contractShipsExactPositions = (ships: Ship[]) => {
   const shipsExactPositions = { small: [], medium: [], large: [], huge: [] };
 
-  // console.log(ships);
   ships.forEach((ship) => {
     const { position, type, direction, length } = ship;
 
@@ -104,7 +100,7 @@ const contractShipsExactPositions = (ships: Ship[]) => {
       );
     }
   });
-  // console.log(shipsExactPositions, 5);
+
   return shipsExactPositions;
 };
 
@@ -118,14 +114,13 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       const { name, password } = JSON.parse(data);
 
       const player = {
-        // id: 1 + generateId(),
         name,
         index: +generateId(),
         password,
         ships: [],
       };
       players.push(player);
-      // console.log(players);
+
       registerPlayer(ws, player);
       updateRoom(ws, rooms);
       updateWinners(ws, tableOfWinners);
@@ -137,15 +132,12 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
       rooms.push({
         roomId: generateId(),
         roomUsers: [currentPlayer],
-        // isAvailable: true,
       });
-      // console.log(rooms);
+
       updateRoom(ws, rooms);
     }
 
     if (type === messageType.addUserToRoom) {
-      // const availableRoom = rooms.find((room) => room.isAvailable);
-      // console.log(availableRoom)
       const { indexRoom } = JSON.parse(data);
       const currentPlayer = players[players.length - 1]; // wrong ?
       const room = rooms.find((room) => room.roomId === indexRoom);
@@ -170,7 +162,6 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
         currentPlayer.ships.push([...ships]);
 
         currentPlayer.shipsExactPosition = contractShipsExactPositions(ships);
-        // console.log(currentPlayer, 8);
       }
 
       if (
@@ -184,7 +175,6 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
 
     if (type === messageType.attack) {
       const { gameId, x: attackX, y: attackY, indexPlayer } = JSON.parse(data);
-      // const attackPosition = { x, y };
       const currentRoom = rooms.find((room) => room.roomId === gameId);
 
       const currentPlayer = currentRoom.roomUsers.find(
@@ -196,17 +186,12 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
 
       const { shipsExactPosition } = enemyPlayer;
 
-      // console.log(currentPlayer.index, enemyPlayer.index, 93);
       let status = attackStatus.miss;
 
       for (let shipType in shipsExactPosition) {
-        // console.log(shipsExactPosition[shipType]);
         const positions = shipsExactPosition[shipType];
-        // console.log(positions, 85, attackX, attackY);
 
         positions.forEach((position, i) => {
-          // console.log(position);
-
           if (Array.isArray(position)) {
             position.forEach((positionItem, j) => {
               const { x: shipX, y: shipY } = positionItem;
@@ -245,8 +230,6 @@ webSocketServer.on("connection", function connection(ws: WebSocket) {
           }
         });
       }
-
-      // console.log(attackPosition, shipsExactPosition, currentPlayer.ships, 99);
     }
 
     if (type === messageType.randomAttack) {
